@@ -222,6 +222,19 @@ html, body {
 
 /* 树节点 */
 .tree-node { user-select: none; }
+.tree-row {
+  display: flex;
+  align-items: center;
+  padding: 5px 8px 5px 0;
+  cursor: pointer;
+  border-radius: 4px;
+  margin: 1px 6px;
+  transition: background 0.15s;
+  font-size: 13.5px;
+  gap: 4px;
+  position: relative;
+}
+.tree-row:hover { background: var(--bg-secondary); }
 .tree-item {
   display: flex;
   align-items: center;
@@ -778,10 +791,8 @@ html, body {
   <!-- Toast 提示 -->
   <div class="toast" id="toast"></div>
 
-  <!-- ====== 内嵌数据 ====== -->
-  <script>
-const TREE_DATA = {"name":"📚 意念诗词库","type":"root","children":[{"label":"先秦经典","children":[{"label":"诗经","children":[{"title":"诗经全本","path":"data/诗经/shijing.json","size":"153KB","icon":"📜","desc":"305篇 · 中国最早诗歌总集"}]},{"label":"楚辞","children":[{"title":"楚辞全本","path":"data/楚辞/chuci.json","size":"2.1MB","icon":"📜","desc":"屈原等 · 浪漫主义诗歌"}]}]},{"label":"四书五经","children":[{"label":"论语","children":[{"title":"论语全本","path":"data/论语/lunyu.json","size":"143KB","icon":"📖","desc":"孔子语录 · 儒家经典"}]},{"label":"大学","children":[{"title":"大学全本","path":"data/四书五经/daxue.json","size":"13KB","icon":"📖","desc":"儒家经典 · 四书之一"}]},{"label":"中庸","children":[{"title":"中庸全本","path":"data/四书五经/zhongyong.json","size":"13KB","icon":"📖","desc":"儒家经典 · 四书之一"}]},{"label":"孟子","children":[{"title":"孟子全本","path":"data/四书五经/mengzi.json","size":"143KB","icon":"📖","desc":"孟子语录 · 儒家经典"}]}]},{"label":"唐诗","children":[{"label":"全唐诗","children":[{"title":"全唐诗·诗人","path":"data/全唐诗/authors.tang.json","size":"820KB","icon":"📗","desc":"唐代诗人名录"},{"title":"全唐诗·诗歌","path":"data/全唐诗/poet.tang.0.json","size":"398KB","icon":"📗","desc":"唐代诗歌精选"}]},{"label":"水墨唐诗","children":[{"title":"水墨唐诗","path":"data/水墨唐诗/shuimotangshi.json","size":"1.2MB","icon":"🖌️","desc":"诗书画卷 · 艺术之美"}]},{"label":"曹操诗集","children":[{"title":"曹操诗集","path":"data/曹操诗集/caocao.json","size":"23KB","icon":"⚔️","desc":"曹操 · 建安风骨"}]}]},{"label":"宋词","children":[{"label":"全宋词","children":[{"title":"全宋词·词人","path":"data/宋词/author.song.json","size":"890KB","icon":"📘","desc":"宋代词人名录"},{"title":"全宋词·词作","path":"data/宋词/ci.song.0.json","size":"2.1MB","icon":"📘","desc":"宋代词作精选"}]},{"label":"五代词","children":[{"title":"花间集","path":"data/五代诗词/huajianji/huajianji-0-preface.json","size":"3KB","icon":"📕","desc":"晚唐五代词"},{"title":"南唐二主词","path":"data/五代诗词/nantang/poetrys.json","size":"69KB","icon":"📕","desc":"李璟李煜词作"}]}]},{"label":"元曲","children":[{"label":"全元曲","children":[{"title":"全元曲","path":"data/元曲/yuanqu.json","size":"4090KB","icon":"🎭","desc":"元代散曲杂剧"}]}]},{"label":"清代文学","children":[{"label":"纳兰性德","children":[{"title":"纳兰性德诗集","path":"data/纳兰性德/纳兰性德诗集.json","size":"156KB","icon":"❄️","desc":"纳兰性德 · 清代词人"}]},{"label":"幽梦影","children":[{"title":"幽梦影","path":"data/幽梦影/youmengying.json","size":"45KB","icon":"🌙","desc":"张潮 · 清代格言"}]}]},{"label":"蒙学读物","children":[{"label":"三字经","children":[{"title":"三字经","path":"data/蒙学/sanzijing-new.json","size":"12KB","icon":"📒","desc":"传统启蒙读物"}]},{"label":"百家姓","children":[{"title":"百家姓","path":"data/蒙学/baijiaxing.json","size":"8KB","icon":"📒","desc":"传统启蒙读物"}]}]},{"label":"御定全唐诗","children":[{"label":"卷一","children":[{"title":"御定全唐诗·卷一","path":"data/御定全唐詩/json/001.json","size":"2.3MB","icon":"👑","desc":"康熙御定全唐诗"}]},{"label":"卷二","children":[{"title":"御定全唐诗·卷二","path":"data/御定全唐詩/json/002.json","size":"2.4MB","icon":"👑","desc":"康熙御定全唐诗"}]}]}]};
-  </script>
+  <!-- ====== 树形数据（外部引用）===== -->
+  <script src="tree-data.js"></script>
 
   <!-- ====== 应用逻辑 ====== -->
   <script>
@@ -811,6 +822,19 @@ const State = {
   favorites: JSON.parse(localStorage.getItem('poetry_favorites') || '[]'),
   fontSize: parseInt(localStorage.getItem('poetry_fontSize') || '16'),
   theme: localStorage.getItem('poetry_theme') || 'light',
+  // 性能优化：缓存机制
+  dataCache: new Map(),
+  searchIndex: null,
+  searchIndexBuilt: false,
+  searchAbortController: null,
+  isSearching: false,
+  filterCache: new Map(),
+  // 虚拟滚动配置
+  virtualScroll: {
+    itemHeight: 38,
+    bufferSize: 10,
+    visibleCount: 20
+  }
 };
 
 // ===== DOM 引用 =====
@@ -838,9 +862,14 @@ async function loadTreeData() {
   const container = $('#treeContainer');
   const startTime = performance.now();
   try {
-    // 直接使用内嵌的 TREE_DATA，不再依赖外部 tree.json
     State.treeData = TREE_DATA;
     renderTreeBatch(State.treeData.children || [State.treeData], container, true);
+    
+    const indexStart = performance.now();
+    buildSearchIndex(State.treeData);
+    const indexElapsed = (performance.now() - indexStart).toFixed(1);
+    console.log(`[PERF] Search index built in ${indexElapsed}ms`);
+    
     const elapsed = (performance.now() - startTime).toFixed(1);
     console.log(`[PERF] Tree rendered in ${elapsed}ms (${container.querySelectorAll('.tree-node').length} nodes)`);
   } catch (e) {
@@ -858,8 +887,177 @@ function loadConfig() {
   };
 }
 
-// ===== 1. 渲染树形结构（优化：DocumentFragment 批量渲染）=====
+// ===== 1. 渲染树形结构（优化：批量渲染 + 懒加载）=====
 
+// 扁平化树节点用于懒加载
+let flatNodes = [];
+let expandedNodes = new Set();
+let visibleNodeCount = 100; // 初始只渲染100个节点
+
+function flattenTree(nodes, depth = 0, parentExpanded = true) {
+  const result = [];
+  nodes.forEach(node => {
+    const hasChildren = node.children && node.children.length > 0;
+    const isPoem = node.type === 'poem';
+    const label = node.label || node.title || node.name || '未命名';
+    
+    result.push({
+      node,
+      depth,
+      hasChildren,
+      isPoem,
+      label,
+      expanded: expandedNodes.has(getNodeKey(node)),
+      visible: parentExpanded
+    });
+    
+    if (hasChildren && (expandedNodes.has(getNodeKey(node)) || depth === 0)) {
+      result.push(...flattenTree(node.children, depth + 1, true));
+    }
+  });
+  return result;
+}
+
+function getNodeKey(node) {
+  return node.path || node.label || node.title || node.name || JSON.stringify(node);
+}
+
+function renderTreeBatch(nodes, container, isRoot = false) {
+  const startTime = performance.now();
+  
+  // 扁平化树节点
+  flatNodes = flattenTree(nodes, isRoot ? 0 : 1);
+  
+  // 批量渲染（限制初始渲染数量）
+  renderTreeNodes(container, 0, Math.min(visibleNodeCount, flatNodes.length));
+  
+  // 添加滚动监听，实现懒加载
+  setupLazyLoad(container);
+  
+  const elapsed = (performance.now() - startTime).toFixed(1);
+  console.log(`[PERF] Tree rendered in ${elapsed}ms (${flatNodes.length} total, ${Math.min(visibleNodeCount, flatNodes.length)} visible)`);
+}
+
+function renderTreeNodes(container, startIndex, endIndex) {
+  const fragment = document.createDocumentFragment();
+  
+  for (let i = startIndex; i < endIndex; i++) {
+    const flatNode = flatNodes[i];
+    if (!flatNode) continue;
+    
+    const row = createTreeNode(flatNode, i);
+    fragment.appendChild(row);
+  }
+  
+  container.appendChild(fragment);
+}
+
+function createTreeNode(flatNode, index) {
+  const { node, depth, hasChildren, isPoem, label, expanded } = flatNode;
+  const icon = getNodeIcon(node, hasChildren);
+  
+  const row = document.createElement('div');
+  row.className = `tree-row ${isPoem ? 'tree-item' : ''}`;
+  row.style.display = 'flex';
+  row.style.alignItems = 'center';
+  row.style.paddingLeft = `${depth * 16 + 8}px`;
+  row.style.cursor = 'pointer';
+  row.style.minHeight = '38px';
+  
+  // 展开/收起按钮
+  if (hasChildren) {
+    const toggle = document.createElement('span');
+    toggle.className = 'tree-toggle';
+    toggle.innerHTML = expanded ? '▼' : '▶';
+    toggle.style.width = '16px';
+    toggle.style.fontSize = '10px';
+    toggle.style.color = 'var(--text-muted)';
+    toggle.style.flexShrink = '0';
+    toggle.style.marginRight = '4px';
+    toggle.addEventListener('click', (e) => {
+      e.stopPropagation();
+      toggleNode(node, expanded);
+    });
+    row.appendChild(toggle);
+  } else {
+    const spacer = document.createElement('span');
+    spacer.style.width = '20px';
+    spacer.style.flexShrink = '0';
+    row.appendChild(spacer);
+  }
+  
+  // 图标
+  const iconSpan = document.createElement('span');
+  iconSpan.className = 'tree-icon';
+  iconSpan.textContent = icon;
+  iconSpan.style.fontSize = '14px';
+  iconSpan.style.marginRight = '8px';
+  iconSpan.style.flexShrink = '0';
+  row.appendChild(iconSpan);
+  
+  // 文本
+  const textSpan = document.createElement('span');
+  textSpan.className = 'tree-text';
+  textSpan.textContent = label;
+  textSpan.style.flex = '1';
+  textSpan.style.overflow = 'hidden';
+  textSpan.style.textOverflow = 'ellipsis';
+  textSpan.style.whiteSpace = 'nowrap';
+  if (node.desc) {
+    textSpan.title = node.desc;
+  }
+  row.appendChild(textSpan);
+  
+  // 点击事件
+  if (isPoem || node.path) {
+    row.addEventListener('click', () => selectTreeItem(row, node));
+  }
+  
+  return row;
+}
+
+function setupLazyLoad(container) {
+  // 移除旧的滚动监听
+  const oldHandler = container._lazyLoadHandler;
+  if (oldHandler) {
+    container.removeEventListener('scroll', oldHandler);
+  }
+  
+  // 创建新的滚动监听
+  const handler = () => {
+    const scrollTop = container.scrollTop;
+    const scrollHeight = container.scrollHeight;
+    const clientHeight = container.clientHeight;
+    
+    // 当滚动到接近底部时，加载更多节点
+    if (scrollTop + clientHeight >= scrollHeight - 100) {
+      const currentCount = container.children.length;
+      if (currentCount < flatNodes.length) {
+        const newEnd = Math.min(currentCount + 50, flatNodes.length);
+        renderTreeNodes(container, currentCount, newEnd);
+        console.log(`[LAZY] Loaded nodes ${currentCount}-${newEnd}`);
+      }
+    }
+  };
+  
+  container._lazyLoadHandler = handler;
+  container.addEventListener('scroll', handler);
+}
+
+function toggleNode(node, currentlyExpanded) {
+  const key = getNodeKey(node);
+  if (currentlyExpanded) {
+    expandedNodes.delete(key);
+  } else {
+    expandedNodes.add(key);
+  }
+  
+  // 重新渲染树
+  const container = $('#treeContainer');
+  container.innerHTML = '';
+  visibleNodeCount = 100; // 重置可见节点数量
+  renderTreeBatch(State.treeData.children || [State.treeData], container, true);
+}
 
 function getNodeIcon(node, hasChildren) {
   if (node.icon) return node.icon;
@@ -877,16 +1075,13 @@ function toggleTree(row, toggle, childrenDiv) {
 function selectTreeItem(row, node) {
   const displayName = node.label || node.title || node.name || '未命名';
   
-  // 高亮
   $$('.tree-item').forEach(i => i.classList.remove('active'));
   row.classList.add('active');
 
-  // 更新面包屑
   updateBreadcrumb(node);
 
-  // 加载文件内容
   if (node.path) {
-    loadFileContent(node.path, displayName);
+    loadFileContent(node.path, displayName, node.index);
   }
 }
 
@@ -896,53 +1091,75 @@ function updateBreadcrumb(node) {
   bc.textContent = `当前位置：${displayName}`;
 }
 
-// ===== 1c. 树形过滤（参考 ChinaTextbook-Pages filterCatalog）=====
+// ===== 1c. 树形过滤（优化：减少对象复制，提前返回）=====
 function filterTree(nodes, query) {
   if (!query) return nodes;
   const q = query.toLowerCase().trim();
   if (!q) return nodes;
   
   const result = [];
-  nodes.forEach(node => {
-    const matchNode = !node.label && !node.title ? false :
-      (node.label || node.title || node.name || '').toLowerCase().includes(q);
+  for (let i = 0; i < nodes.length; i++) {
+    const node = nodes[i];
+    const label = (node.label || node.title || node.name || '').toLowerCase();
+    const matchNode = label.includes(q);
     
     if (node.children && node.children.length > 0) {
       const filteredChildren = filterTree(node.children, q);
-      if (filteredChildren.length > 0 || matchNode) {
+      if (filteredChildren.length > 0) {
         result.push({
           ...node,
-          children: filteredChildren.length > 0 ? filteredChildren : node.children
+          children: filteredChildren
+        });
+      } else if (matchNode) {
+        result.push({
+          ...node,
+          children: []
         });
       }
-    } else if (matchNode || (node.path && (node.label || node.title || '').toLowerCase().includes(q))) {
+    } else if (matchNode) {
       result.push(node);
     }
-  });
+  }
   return result;
 }
 
 // ===== 2. 加载诗文文件 =====
-async function loadFileContent(path, title) {
+async function loadFileContent(path, title, initialIndex) {
   showWelcome(false);
   $('#contentPage').style.display = 'flex';
 
   const resolved = resolvePath(path);
-  console.log('Loading:', path, '->', resolved);
+  console.log('Loading:', path, '->', resolved, 'index:', initialIndex);
 
   try {
-    const resp = await fetch(resolved);
-    if (!resp.ok) throw new Error(`HTTP ${resp.status}: ${resp.statusText}`);
-    const data = await resp.json();
+    // 检查缓存
+    let data;
+    if (State.dataCache.has(path)) {
+      data = State.dataCache.get(path);
+      console.log(`[CACHE] Hit for ${path}`);
+    } else {
+      const resp = await fetch(resolved);
+      if (!resp.ok) throw new Error(`HTTP ${resp.status}: ${resp.statusText}`);
+      data = await resp.json();
+      State.dataCache.set(path, data);
+      console.log(`[CACHE] Miss for ${path}, cached`);
+      
+      // 智能预加载相邻文件
+      preloadAdjacentFiles(path);
+    }
 
-    // 兼容多种数据格式
     const items = normalizeData(data, path);
     State.currentItems = items;
-    State.currentIndex = 0;
     State.currentFile = path;
 
+    if (typeof initialIndex === 'number' && initialIndex >= 0 && initialIndex < items.length) {
+      State.currentIndex = initialIndex;
+    } else {
+      State.currentIndex = 0;
+    }
+
     if (items.length > 0) {
-      displayItem(0);
+      displayItem(State.currentIndex);
     } else {
       $('#poemView').innerHTML = '<div class="search-empty">暂无内容（请检查数据格式）</div>';
     }
@@ -950,6 +1167,53 @@ async function loadFileContent(path, title) {
     $('#poemView').innerHTML = `<div class="search-empty">加载失败：${e.message}<br><small>${path}</small></div>`;
     console.error('Load error:', e);
   }
+}
+
+// 智能预加载相邻文件
+function preloadAdjacentFiles(currentPath) {
+  if (!State.treeData) return;
+  
+  const paths = getAllFilePaths(State.treeData);
+  const currentIndex = paths.indexOf(currentPath);
+  
+  if (currentIndex === -1) return;
+  
+  // 预加载前后各2个文件
+  const preloadIndices = [
+    currentIndex - 2,
+    currentIndex - 1,
+    currentIndex + 1,
+    currentIndex + 2
+  ].filter(i => i >= 0 && i < paths.length && i !== currentIndex);
+  
+  preloadIndices.forEach(index => {
+    const path = paths[index];
+    if (!State.dataCache.has(path)) {
+      fetch(resolvePath(path))
+        .then(res => {
+          if (res.ok) return res.json();
+          throw new Error(`HTTP ${res.status}`);
+        })
+        .then(data => {
+          State.dataCache.set(path, data);
+          console.log(`[PRELOAD] Loaded ${path}`);
+        })
+        .catch(err => {
+          console.warn(`[PRELOAD] Failed to load ${path}:`, err);
+        });
+    }
+  });
+}
+
+// 获取所有文件路径
+function getAllFilePaths(node, result = []) {
+  if (node.path) {
+    result.push(node.path);
+  }
+  if (node.children) {
+    node.children.forEach(child => getAllFilePaths(child, result));
+  }
+  return result;
 }
 
 /**
@@ -1103,7 +1367,7 @@ function initFontSize() {
   });
 }
 
-// ===== 5. 搜索功能 =====
+// ===== 5. 搜索功能（优化：搜索索引 + 高效过滤）=====
 function initSearch() {
   const input = $('#searchInput');
   let timer;
@@ -1112,44 +1376,72 @@ function initSearch() {
     clearTimeout(timer);
     const q = input.value.trim();
     if (q.length < 1) {
-      // 清空搜索时恢复完整树
       if (State.treeData) {
         renderTreeBatch(State.treeData.children || [], $('#treeContainer'), true);
       }
       return;
     }
-    // 防抖搜索（200ms，参考 ChinaTextbook-Pages）
     timer = setTimeout(() => {
       performSearch(q);
-      // 同时过滤树形结构
       filterAndRenderTree(q);
-    }, 200);
+    }, 500);
   });
 
   input.addEventListener('keydown', (e) => {
     if (e.key === 'Enter') {
       clearTimeout(timer);
-      performSearch(input.value.trim());
-      filterAndRenderTree(input.value.trim());
+      const q = input.value.trim();
+      performSearch(q);
+      filterAndRenderTree(q);
     }
   });
 
   $('#searchBtn').addEventListener('click', () => {
-    performSearch(input.value.trim());
-    filterAndRenderTree(input.value.trim());
+    const q = input.value.trim();
+    performSearch(q);
+    filterAndRenderTree(q);
   });
   $('#closeSearchBtn').addEventListener('click', () => toggleSearchPanel(false));
 }
 
-// ===== 1d. 树形过滤渲染（参考 ChinaTextbook-Pages）=====
-function filterAndRenderTree(query) {
-  if (!State.treeData || !query) return;
-  const filtered = filterTree(State.treeData.children || [], query);
-  renderTreeBatch(filtered, $('#treeContainer'), true);
+// 构建搜索索引（只构建一次，缓存结果）
+function buildSearchIndex(node) {
+  if (State.searchIndexBuilt && State.searchIndex) {
+    return State.searchIndex;
+  }
+  
+  const index = { items: [], paths: [] };
+  
+  function traverse(n) {
+    if (n.path) {
+      index.paths.push(n.path);
+    }
+    if (n.type === 'poem' && n.title) {
+      index.items.push({
+        title: n.title,
+        author: n.author || '',
+        path: n.path,
+        index: n.index,
+        type: 'poem',
+        dynasty: n.dynasty || '',
+        category: n.category || ''
+      });
+    }
+    if (n.children) {
+      n.children.forEach(child => traverse(child));
+    }
+  }
+  
+  traverse(node);
+  State.searchIndex = index;
+  State.searchIndexBuilt = true;
+  return index;
 }
 
 async function performSearch(query) {
-  if (!query) return;
+  if (!query || State.isSearching) return;
+  
+  State.isSearching = true;
   const panel = $('#searchPanel');
   const results = $('#searchResults');
   panel.style.display = 'flex';
@@ -1157,40 +1449,125 @@ async function performSearch(query) {
 
   const dynasty = $('#dynastyFilter').value;
   const type = $('#typeFilter').value;
+  const q = query.toLowerCase();
 
-  // 从tree数据中获取所有可搜索的路径
-  const paths = collectPaths(State.treeData.children || []);
-  const results_all = [];
+  if (State.searchAbortController) {
+    State.searchAbortController.abort();
+  }
+  const abortController = new AbortController();
+  State.searchAbortController = abortController;
 
-  for (const path of paths) {
-    try {
-      const resolved = resolvePath(path);
-      const resp = await fetch(resolved);
-      const data = await resp.json();
-      const items = normalizeData(data, path);
-      for (let i = 0; i < items.length; i++) {
-        const item = items[i];
-        const q = query.toLowerCase();
-        if (
-          item.title.toLowerCase().includes(q) ||
-          item.author.toLowerCase().includes(q) ||
-          item.content.toLowerCase().includes(q)
-        ) {
-          if (dynasty && !path.includes(dynasty) && !item.author.includes(dynasty)) continue;
-          if (type && !item.content.includes(type) && !item.title.includes(type)) continue;
-          results_all.push({ ...item, path, index: i });
+  try {
+    const searchIndex = buildSearchIndex(State.treeData);
+    const results_all = [];
+
+    for (const item of searchIndex.items) {
+      if (abortController.signal.aborted) return;
+      if (
+        item.title.toLowerCase().includes(q) ||
+        item.author.toLowerCase().includes(q)
+      ) {
+        if (dynasty && !item.path.includes(dynasty) && !item.author.includes(dynasty) && !item.dynasty.includes(dynasty)) continue;
+        results_all.push({ ...item, content: '' });
+      }
+    }
+
+    if (results_all.length < 50 && !abortController.signal.aborted) {
+      const cachedPaths = [];
+      const uncachedPaths = [];
+      
+      for (const path of searchIndex.paths) {
+        if (abortController.signal.aborted) return;
+        if (State.dataCache.has(path)) {
+          cachedPaths.push(path);
+        } else {
+          uncachedPaths.push(path);
         }
       }
-    } catch {}
-  }
 
-  renderSearchResults(results_all, query);
+      for (const path of cachedPaths.slice(0, 10)) {
+        if (abortController.signal.aborted) return;
+        try {
+          const data = State.dataCache.get(path);
+          const items = normalizeData(data, path);
+          for (let i = 0; i < items.length && results_all.length < 50; i++) {
+            const item = items[i];
+            if (item.content.toLowerCase().includes(q)) {
+              if (dynasty && !path.includes(dynasty) && !item.author.includes(dynasty)) continue;
+              if (type && !item.content.includes(type) && !item.title.includes(type)) continue;
+              if (!results_all.find(r => r.path === path && r.index === i)) {
+                results_all.push({ ...item, path, index: i });
+              }
+            }
+          }
+        } catch {}
+      }
+
+      if (results_all.length < 50 && !abortController.signal.aborted) {
+        for (const path of uncachedPaths.slice(0, 5)) {
+          if (abortController.signal.aborted) return;
+          try {
+            const resolved = resolvePath(path);
+            const resp = await fetch(resolved, { signal: abortController.signal });
+            const data = await resp.json();
+            State.dataCache.set(path, data);
+
+            const items = normalizeData(data, path);
+            for (let i = 0; i < items.length && results_all.length < 50; i++) {
+              const item = items[i];
+              if (item.content.toLowerCase().includes(q)) {
+                if (dynasty && !path.includes(dynasty) && !item.author.includes(dynasty)) continue;
+                if (type && !item.content.includes(type) && !item.title.includes(type)) continue;
+                if (!results_all.find(r => r.path === path && r.index === i)) {
+                  results_all.push({ ...item, path, index: i });
+                }
+              }
+            }
+          } catch (err) {
+            if (err.name !== 'AbortError') {
+              console.warn(`[SEARCH] Failed to load ${path}:`, err);
+            }
+          }
+        }
+      }
+    }
+
+    if (!abortController.signal.aborted) {
+      renderSearchResults(results_all, query);
+    }
+  } finally {
+    State.isSearching = false;
+    if (State.searchAbortController === abortController) {
+      State.searchAbortController = null;
+    }
+  }
 }
 
 function collectPaths(node, results = []) {
   if (node.path) results.push(node.path);
   if (node.children) node.children.forEach(c => collectPaths(c, results));
   return results;
+}
+
+// ===== 1d. 树形过滤渲染（优化：缓存过滤结果）=====
+function filterAndRenderTree(query) {
+  if (!State.treeData || !query) return;
+  
+  const cacheKey = query;
+  if (State.filterCache.has(cacheKey)) {
+    renderTreeBatch(State.filterCache.get(cacheKey), $('#treeContainer'), true);
+    return;
+  }
+  
+  const filtered = filterTree(State.treeData.children || [], query);
+  State.filterCache.set(cacheKey, filtered);
+  
+  if (State.filterCache.size > 20) {
+    const keys = Array.from(State.filterCache.keys());
+    State.filterCache.delete(keys[0]);
+  }
+  
+  renderTreeBatch(filtered, $('#treeContainer'), true);
 }
 
 function renderSearchResults(items, query) {
