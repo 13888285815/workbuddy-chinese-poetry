@@ -1,0 +1,1426 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>📚 中华诗词库</title>
+  <style>
+/* ================================================
+   中华诗词库 - 水墨山水风格增强版
+   ================================================ */
+
+/* ---------- 变量 & 重置 ---------- */
+:root {
+  /* 浅色主题（水墨白） */
+  --bg-primary: #f5f0e8;
+  --bg-secondary: #ede7d9;
+  --bg-sidebar: #f0ebe0;
+  --bg-content: #faf8f2;
+  --bg-card: #ffffff;
+  --text-primary: #2c2c2c;
+  --text-secondary: #5a5a5a;
+  --text-muted: #8a8a8a;
+  --accent: #8b4513;
+  --accent-light: #c0753a;
+  --accent-hover: #a0522d;
+  --border: #d4c9b0;
+  --border-light: #e8e0d0;
+  --shadow: rgba(139, 69, 19, 0.08);
+  --scrollbar: #c9b89a;
+  --scrollbar-h: #b8a88a;
+  --ink-black: #1a1a1a;
+  --gold: #b8860b;
+  --header-height: 58px;
+  --sidebar-width: 260px;
+  --font-size: 16px;
+  --line-height: 1.8;
+}
+
+[data-theme="dark"] {
+  --bg-primary: #1a1612;
+  --bg-secondary: #241f19;
+  --bg-sidebar: #1f1a15;
+  --bg-content: #1e1a14;
+  --bg-card: #2a231c;
+  --text-primary: #e8dcc8;
+  --text-secondary: #b8a88a;
+  --text-muted: #8a7a6a;
+  --accent: #c0753a;
+  --accent-light: #d4956a;
+  --accent-hover: #b8860b;
+  --border: #3a3028;
+  --border-light: #4a3f35;
+  --shadow: rgba(0,0,0,0.3);
+  --scrollbar: #5a4a38;
+  --scrollbar-h: #7a6a58;
+  --ink-black: #e8dcc8;
+  --gold: #d4a44a;
+}
+
+/* ---------- 全局 ---------- */
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+html, body {
+  height: 100%;
+  font-family: "PingFang SC", "Noto Serif SC", "Source Han Serif CN", "SimSun", "STSong", serif;
+  font-size: var(--font-size);
+  line-height: var(--line-height);
+  background: var(--bg-primary);
+  color: var(--text-primary);
+  overflow: hidden;
+}
+
+/* ---------- 顶部搜索栏 ---------- */
+.topbar {
+  height: var(--header-height);
+  background: var(--bg-card);
+  border-bottom: 1px solid var(--border);
+  display: flex;
+  align-items: center;
+  padding: 0 16px;
+  gap: 16px;
+  box-shadow: 0 2px 8px var(--shadow);
+  position: relative;
+  z-index: 100;
+}
+
+.topbar-left { min-width: 180px; }
+.logo {
+  font-size: 18px;
+  font-weight: bold;
+  color: var(--accent);
+  letter-spacing: 1px;
+  white-space: nowrap;
+}
+
+.topbar-center {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.search-box {
+  display: flex;
+  align-items: center;
+  background: var(--bg-secondary);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  overflow: hidden;
+  max-width: 420px;
+  width: 100%;
+  transition: border-color 0.2s, box-shadow 0.2s;
+}
+.search-box:focus-within {
+  border-color: var(--accent);
+  box-shadow: 0 0 0 3px rgba(139,69,19,0.12);
+}
+.search-box input {
+  flex: 1;
+  border: none;
+  background: transparent;
+  padding: 8px 12px;
+  font-size: 14px;
+  color: var(--text-primary);
+  outline: none;
+  font-family: inherit;
+}
+.search-box input::placeholder { color: var(--text-muted); }
+.search-box button {
+  border: none;
+  background: transparent;
+  padding: 8px 12px;
+  cursor: pointer;
+  font-size: 16px;
+  transition: background 0.2s;
+}
+.search-box button:hover { background: var(--bg-secondary); }
+
+.filter-group { display: flex; gap: 8px; }
+.filter-group select {
+  padding: 7px 10px;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  background: var(--bg-secondary);
+  color: var(--text-primary);
+  font-size: 13px;
+  font-family: inherit;
+  cursor: pointer;
+  outline: none;
+  transition: border-color 0.2s;
+}
+.filter-group select:focus { border-color: var(--accent); }
+
+.topbar-right { display: flex; gap: 4px; align-items: center; }
+.icon-btn {
+  width: 36px; height: 36px;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  background: var(--bg-secondary);
+  cursor: pointer;
+  font-size: 16px;
+  display: flex; align-items: center; justify-content: center;
+  transition: background 0.2s, transform 0.1s;
+}
+.icon-btn:hover { background: var(--bg-card); transform: scale(1.05); }
+.icon-btn:active { transform: scale(0.95); }
+
+/* ---------- 主容器 ---------- */
+.main-container {
+  display: flex;
+  height: calc(100vh - var(--header-height));
+  overflow: hidden;
+}
+
+/* ---------- 左侧边栏（树形结构） ---------- */
+.sidebar {
+  width: var(--sidebar-width);
+  min-width: 180px;
+  max-width: 420px;
+  background: var(--bg-sidebar);
+  border-right: 1px solid var(--border);
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+.sidebar-header {
+  padding: 10px 14px;
+  border-bottom: 1px solid var(--border-light);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  background: var(--bg-card);
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--text-secondary);
+  letter-spacing: 0.5px;
+  flex-shrink: 0;
+}
+.sidebar-tools { display: flex; gap: 4px; }
+.sidebar-tools button {
+  background: none;
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  padding: 2px 6px;
+  cursor: pointer;
+  font-size: 12px;
+  transition: background 0.2s;
+}
+.sidebar-tools button:hover { background: var(--bg-secondary); }
+
+.tree-container {
+  flex: 1;
+  overflow-y: auto;
+  overflow-x: hidden;
+  padding: 6px 0;
+}
+.tree-container::-webkit-scrollbar { width: 6px; }
+.tree-container::-webkit-scrollbar-track { background: transparent; }
+.tree-container::-webkit-scrollbar-thumb { background: var(--scrollbar); border-radius: 3px; }
+.tree-container::-webkit-scrollbar-thumb:hover { background: var(--scrollbar-h); }
+
+/* 树节点 */
+.tree-node { user-select: none; }
+.tree-item {
+  display: flex;
+  align-items: center;
+  padding: 5px 8px 5px 0;
+  cursor: pointer;
+  border-radius: 4px;
+  margin: 1px 6px;
+  transition: background 0.15s;
+  font-size: 13.5px;
+  gap: 4px;
+  position: relative;
+}
+.tree-item:hover { background: var(--bg-secondary); }
+.tree-item.active { background: rgba(139,69,19,0.12); color: var(--accent); font-weight: 500; }
+[data-theme="dark"] .tree-item.active { background: rgba(192,117,58,0.15); }
+
+.tree-toggle {
+  width: 18px;
+  height: 18px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  font-size: 10px;
+  color: var(--text-muted);
+  transition: transform 0.2s;
+  cursor: pointer;
+}
+.tree-toggle.open { transform: rotate(90deg); }
+.tree-toggle.empty { visibility: hidden; }
+
+.tree-icon { font-size: 14px; flex-shrink: 0; }
+.tree-label { flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.tree-label .tree-desc {
+  font-size: 11px;
+  color: var(--text-muted);
+  display: block;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.tree-children { display: none; }
+.tree-children.open { display: block; }
+
+.loading {
+  padding: 20px;
+  text-align: center;
+  color: var(--text-muted);
+  font-size: 13px;
+}
+
+/* ---------- 拖动分割条 ---------- */
+.resizer {
+  width: 4px;
+  cursor: col-resize;
+  background: transparent;
+  transition: background 0.2s;
+  flex-shrink: 0;
+  position: relative;
+}
+.resizer::after {
+  content: '';
+  position: absolute;
+  left: -3px; right: -3px;
+  top: 0; bottom: 0;
+}
+.resizer:hover, .resizer.dragging { background: var(--accent); }
+
+/* ---------- 右侧内容区 ---------- */
+.content-area {
+  flex: 1;
+  overflow: hidden;
+  background: var(--bg-content);
+  display: flex;
+  flex-direction: column;
+}
+
+/* ---------- 欢迎页 ---------- */
+.welcome-page {
+  height: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: radial-gradient(ellipse at center, var(--bg-content) 0%, var(--bg-primary) 100%);
+}
+.welcome-content { text-align: center; max-width: 640px; padding: 20px; }
+.welcome-content h1 {
+  font-size: 42px;
+  color: var(--accent);
+  margin-bottom: 8px;
+  letter-spacing: 4px;
+  text-shadow: 2px 2px 4px rgba(139,69,19,0.15);
+}
+.subtitle {
+  font-size: 18px;
+  color: var(--text-secondary);
+  margin-bottom: 32px;
+  letter-spacing: 2px;
+}
+.stats {
+  display: flex;
+  justify-content: center;
+  gap: 32px;
+  margin-bottom: 36px;
+}
+.stat-item {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+}
+.stat-num {
+  font-size: 28px;
+  font-weight: bold;
+  color: var(--accent);
+}
+.stat-label { font-size: 13px; color: var(--text-muted); }
+
+.quick-nav h3 {
+  font-size: 16px;
+  color: var(--text-secondary);
+  margin-bottom: 12px;
+  font-weight: normal;
+}
+.quick-links {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  justify-content: center;
+}
+.quick-link {
+  padding: 8px 16px;
+  border: 1px solid var(--border);
+  border-radius: 20px;
+  background: var(--bg-card);
+  color: var(--text-primary);
+  cursor: pointer;
+  font-size: 14px;
+  font-family: inherit;
+  transition: all 0.2s;
+  box-shadow: 0 2px 6px var(--shadow);
+}
+.quick-link:hover {
+  background: var(--accent);
+  color: #fff;
+  border-color: var(--accent);
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(139,69,19,0.2);
+}
+
+/* ---------- 内容页 ---------- */
+.content-page {
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+.content-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 10px 20px;
+  border-bottom: 1px solid var(--border-light);
+  background: var(--bg-card);
+  flex-shrink: 0;
+  gap: 12px;
+}
+.breadcrumb {
+  font-size: 13px;
+  color: var(--text-muted);
+  flex: 1;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.content-actions { display: flex; gap: 6px; }
+.action-btn {
+  width: 32px; height: 32px;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  background: var(--bg-secondary);
+  cursor: pointer;
+  font-size: 14px;
+  display: flex; align-items: center; justify-content: center;
+  transition: background 0.2s;
+}
+.action-btn:hover { background: var(--accent); color: #fff; border-color: var(--accent); }
+.action-btn.active { background: var(--accent); color: #fff; border-color: var(--accent); }
+
+.content-toolbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 6px 20px;
+  background: var(--bg-secondary);
+  border-bottom: 1px solid var(--border-light);
+  font-size: 12px;
+  color: var(--text-muted);
+  flex-shrink: 0;
+}
+.font-size-control { display: flex; gap: 4px; }
+.font-size-control button {
+  padding: 2px 8px;
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  background: var(--bg-card);
+  cursor: pointer;
+  font-size: 12px;
+  font-family: inherit;
+  transition: background 0.2s;
+}
+.font-size-control button:hover { background: var(--accent); color: #fff; border-color: var(--accent); }
+
+.content-scroll {
+  flex: 1;
+  overflow-y: auto;
+  padding: 32px 48px;
+}
+.content-scroll::-webkit-scrollbar { width: 8px; }
+.content-scroll::-webkit-scrollbar-track { background: transparent; }
+.content-scroll::-webkit-scrollbar-thumb { background: var(--scrollbar); border-radius: 4px; }
+.content-scroll::-webkit-scrollbar-thumb:hover { background: var(--scrollbar-h); }
+
+/* ---------- 诗文展示 ---------- */
+.poem-view { max-width: 760px; margin: 0 auto; }
+
+.poem-card {
+  background: var(--bg-card);
+  border-radius: 12px;
+  padding: 28px 36px;
+  margin-bottom: 24px;
+  box-shadow: 0 4px 20px var(--shadow);
+  border: 1px solid var(--border-light);
+  transition: transform 0.2s, box-shadow 0.2s;
+  position: relative;
+  overflow: hidden;
+}
+.poem-card::before {
+  content: '';
+  position: absolute;
+  top: 0; left: 0; right: 0;
+  height: 3px;
+  background: linear-gradient(90deg, var(--accent), var(--gold));
+}
+.poem-card:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 8px 30px var(--shadow);
+}
+
+.poem-title {
+  font-size: 22px;
+  font-weight: bold;
+  color: var(--ink-black);
+  margin-bottom: 6px;
+  letter-spacing: 2px;
+}
+.poem-meta {
+  font-size: 13px;
+  color: var(--text-muted);
+  margin-bottom: 18px;
+  display: flex;
+  gap: 12px;
+  align-items: center;
+  flex-wrap: wrap;
+}
+.poem-tag {
+  display: inline-block;
+  padding: 2px 8px;
+  border-radius: 10px;
+  font-size: 11px;
+  background: var(--bg-secondary);
+  color: var(--text-secondary);
+  border: 1px solid var(--border);
+}
+.poem-author { color: var(--accent); font-weight: 500; }
+.poem-author::before { content: '— '; }
+
+.poem-content {
+  font-size: calc(var(--font-size) * 1.1);
+  line-height: 2.2;
+  color: var(--ink-black);
+  white-space: pre-line;
+  letter-spacing: 1px;
+}
+.poem-para { display: block; margin-bottom: 4px; }
+
+.poem-annotation {
+  margin-top: 16px;
+  padding-top: 14px;
+  border-top: 1px dashed var(--border-light);
+  font-size: 13px;
+  color: var(--text-secondary);
+  line-height: 1.8;
+}
+.annotation-label {
+  color: var(--accent);
+  font-weight: 600;
+  margin-right: 4px;
+}
+
+/* ---------- 搜索结果面板 ---------- */
+.search-panel {
+  position: fixed;
+  top: var(--header-height);
+  right: 0;
+  width: 480px;
+  max-width: 90vw;
+  height: calc(100vh - var(--header-height));
+  background: var(--bg-card);
+  border-left: 1px solid var(--border);
+  box-shadow: -4px 0 20px var(--shadow);
+  z-index: 200;
+  display: flex;
+  flex-direction: column;
+  animation: slideIn 0.25s ease;
+}
+@keyframes slideIn {
+  from { transform: translateX(100%); opacity: 0; }
+  to { transform: translateX(0); opacity: 1; }
+}
+
+.search-panel-header {
+  padding: 14px 16px;
+  border-bottom: 1px solid var(--border);
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-weight: 600;
+  font-size: 14px;
+  flex-shrink: 0;
+}
+.search-panel-header button {
+  background: none;
+  border: none;
+  cursor: pointer;
+  font-size: 16px;
+  color: var(--text-muted);
+  transition: color 0.2s;
+}
+.search-panel-header button:hover { color: var(--accent); }
+
+.search-results {
+  flex: 1;
+  overflow-y: auto;
+  padding: 8px;
+}
+.search-results::-webkit-scrollbar { width: 5px; }
+.search-results::-webkit-scrollbar-thumb { background: var(--scrollbar); border-radius: 3px; }
+
+.search-hint {
+  text-align: center;
+  color: var(--text-muted);
+  padding: 40px 20px;
+  font-size: 14px;
+}
+.search-result-item {
+  padding: 12px 14px;
+  border-radius: 8px;
+  cursor: pointer;
+  margin-bottom: 4px;
+  transition: background 0.15s;
+  border: 1px solid transparent;
+}
+.search-result-item:hover {
+  background: var(--bg-secondary);
+  border-color: var(--border);
+}
+.search-result-title {
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--text-primary);
+  margin-bottom: 4px;
+}
+.search-result-meta {
+  font-size: 12px;
+  color: var(--text-muted);
+}
+.search-result-snippet {
+  font-size: 13px;
+  color: var(--text-secondary);
+  margin-top: 4px;
+  line-height: 1.6;
+}
+.search-highlight { color: var(--accent); font-weight: bold; background: rgba(139,69,19,0.1); border-radius: 2px; padding: 0 2px; }
+.search-empty {
+  text-align: center;
+  color: var(--text-muted);
+  padding: 40px 20px;
+  font-size: 14px;
+}
+.search-loading {
+  text-align: center;
+  color: var(--text-muted);
+  padding: 40px;
+  font-size: 14px;
+}
+
+/* ---------- Toast 提示 ---------- */
+.toast {
+  position: fixed;
+  bottom: 24px;
+  left: 50%;
+  transform: translateX(-50%) translateY(100px);
+  background: var(--ink-black);
+  color: #fff;
+  padding: 10px 20px;
+  border-radius: 8px;
+  font-size: 14px;
+  z-index: 9999;
+  opacity: 0;
+  transition: transform 0.3s, opacity 0.3s;
+  pointer-events: none;
+  white-space: nowrap;
+}
+.toast.show {
+  transform: translateX(-50%) translateY(0);
+  opacity: 1;
+}
+[data-theme="dark"] .toast { background: var(--bg-card); color: var(--text-primary); border: 1px solid var(--border); }
+
+/* ---------- 响应式 ---------- */
+@media (max-width: 768px) {
+  .sidebar { display: none; }
+  .resizer { display: none; }
+  .topbar-center { display: none; }
+  .welcome-content h1 { font-size: 28px; }
+  .content-scroll { padding: 20px; }
+}
+  </style>
+</head>
+<body>
+  <!-- ====== 顶部检索功能区 ====== -->
+  <header class="topbar">
+    <div class="topbar-left">
+      <span class="logo">📚 中华诗词库</span>
+    </div>
+    <div class="topbar-center">
+      <div class="search-box">
+        <input type="text" id="searchInput" placeholder="搜索诗词、作者、关键词…" autocomplete="off">
+        <button id="searchBtn" title="搜索">🔍</button>
+      </div>
+      <div class="filter-group">
+        <select id="dynastyFilter">
+          <option value="">全部朝代</option>
+          <option value="诗经">诗经</option>
+          <option value="楚辞">楚辞</option>
+          <option value="论语">论语</option>
+          <option value="唐">唐</option>
+          <option value="宋">宋</option>
+          <option value="五代">五代</option>
+          <option value="元">元</option>
+          <option value="清">清</option>
+        </select>
+        <select id="typeFilter">
+          <option value="">全部体裁</option>
+          <option value="诗">诗</option>
+          <option value="词">词</option>
+          <option value="曲">曲</option>
+          <option value="散文">散文</option>
+        </select>
+      </div>
+    </div>
+    <div class="topbar-right">
+      <button class="icon-btn" id="themeBtn" title="切换主题">🌙</button>
+      <button class="icon-btn" id="randomBtn" title="随机一首">🎲</button>
+      <button class="icon-btn" id="fullscreenBtn" title="全屏">⛶</button>
+    </div>
+  </header>
+
+  <!-- ====== 主内容区 ====== -->
+  <div class="main-container">
+    <!-- 左侧树形文件管理器 -->
+    <aside class="sidebar">
+      <div class="sidebar-header">
+        <span>📂 诗词目录</span>
+        <div class="sidebar-tools">
+          <button id="expandAllBtn" title="展开全部">展开</button>
+          <button id="collapseAllBtn" title="折叠全部">折叠</button>
+        </div>
+      </div>
+      <div class="tree-container" id="treeContainer">
+        <div class="loading">加载中…</div>
+      </div>
+    </aside>
+
+    <!-- 拖动分割条 -->
+    <div class="resizer" id="resizer"></div>
+
+    <!-- 右侧诗文浏览区 -->
+    <section class="content-area">
+      <!-- 欢迎页 -->
+      <div class="welcome-page" id="welcomePage">
+        <div class="welcome-content">
+          <h1>📚 中华诗词库</h1>
+          <p class="subtitle">传承千年文化，品味诗词之美</p>
+          <div class="stats">
+            <div class="stat-item"><span class="stat-num">21</span><span class="stat-label">数据文件</span></div>
+            <div class="stat-item"><span class="stat-num">6.8</span><span class="stat-label">MB 数据</span></div>
+            <div class="stat-item"><span class="stat-num">8</span><span class="stat-label">朝代分类</span></div>
+          </div>
+          <div class="quick-nav">
+            <h3>🔥 快速导航</h3>
+            <div class="quick-links">
+              <button class="quick-link" data-path="data/诗经/shijing.json">📜 诗经</button>
+              <button class="quick-link" data-path="data/楚辞/chuci.json">📜 楚辞</button>
+              <button class="quick-link" data-path="data/论语/lunyu.json">📖 论语</button>
+              <button class="quick-link" data-path="data/水墨唐诗/shuimotangshi.json">🖌️ 水墨唐诗</button>
+              <button class="quick-link" data-path="data/宋词/ci.song.0.json">📘 宋词精选</button>
+              <button class="quick-link" data-path="data/元曲/yuanqu.json">🎭 元曲</button>
+              <button class="quick-link" data-path="data/纳兰性德/纳兰性德诗集.json">❄️ 纳兰词</button>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- 内容页 -->
+      <div class="content-page" id="contentPage" style="display:none;">
+        <div class="content-header">
+          <div class="breadcrumb" id="breadcrumb">当前位置：</div>
+          <div class="content-actions">
+            <button class="action-btn" id="prevBtn" title="上一篇">◀</button>
+            <button class="action-btn" id="nextBtn" title="下一篇">▶</button>
+            <button class="action-btn" id="copyBtn" title="复制">📋</button>
+            <button class="action-btn" id="favoriteBtn" title="收藏">⭐</button>
+          </div>
+        </div>
+        <div class="content-toolbar">
+          <div class="font-size-control">
+            <span>字号：</span>
+            <button id="fontSmBtn">A-</button>
+            <button id="fontLgBtn">A+</button>
+          </div>
+          <span id="itemCounter">第 0 / 0 篇</span>
+        </div>
+        <div class="content-scroll" id="contentScroll">
+          <div class="poem-view" id="poemView"></div>
+        </div>
+      </div>
+    </section>
+  </div>
+
+  <!-- 搜索结果面板 -->
+  <div class="search-panel" id="searchPanel" style="display:none;">
+    <div class="search-panel-header">
+      <span>🔍 搜索结果</span>
+      <button id="closeSearchBtn">✕</button>
+    </div>
+    <div class="search-results" id="searchResults"></div>
+  </div>
+
+  <!-- Toast 提示 -->
+  <div class="toast" id="toast"></div>
+
+  <!-- ====== 内嵌数据 ====== -->
+  <script>
+const TREE_DATA = {"name":"📚 中华诗词库","type":"root","children":[{"label":"先秦经典","children":[{"label":"诗经","children":[{"title":"诗经全本","path":"data/诗经/shijing.json","size":"153KB","icon":"📜","desc":"305篇 · 中国最早诗歌总集"}]},{"label":"楚辞","children":[{"title":"楚辞全本","path":"data/楚辞/chuci.json","size":"2.1MB","icon":"📜","desc":"屈原等 · 浪漫主义诗歌"}]}]},{"label":"四书五经","children":[{"label":"论语","children":[{"title":"论语全本","path":"data/论语/lunyu.json","size":"143KB","icon":"📖","desc":"孔子语录 · 儒家经典"}]},{"label":"大学","children":[{"title":"大学全本","path":"data/四书五经/daxue.json","size":"13KB","icon":"📖","desc":"儒家经典 · 四书之一"}]},{"label":"中庸","children":[{"title":"中庸全本","path":"data/四书五经/zhongyong.json","size":"13KB","icon":"📖","desc":"儒家经典 · 四书之一"}]},{"label":"孟子","children":[{"title":"孟子全本","path":"data/四书五经/mengzi.json","size":"143KB","icon":"📖","desc":"孟子语录 · 儒家经典"}]}]},{"label":"唐诗","children":[{"label":"全唐诗","children":[{"title":"全唐诗·诗人","path":"data/全唐诗/authors.tang.json","size":"820KB","icon":"📗","desc":"唐代诗人名录"},{"title":"全唐诗·诗歌","path":"data/全唐诗/poet.tang.0.json","size":"398KB","icon":"📗","desc":"唐代诗歌精选"}]},{"label":"水墨唐诗","children":[{"title":"水墨唐诗","path":"data/水墨唐诗/shuimotangshi.json","size":"1.2MB","icon":"🖌️","desc":"诗书画卷 · 艺术之美"}]},{"label":"曹操诗集","children":[{"title":"曹操诗集","path":"data/曹操诗集/caocao.json","size":"23KB","icon":"⚔️","desc":"曹操 · 建安风骨"}]}]},{"label":"宋词","children":[{"label":"全宋词","children":[{"title":"全宋词·词人","path":"data/宋词/author.song.json","size":"890KB","icon":"📘","desc":"宋代词人名录"},{"title":"全宋词·词作","path":"data/宋词/ci.song.0.json","size":"2.1MB","icon":"📘","desc":"宋代词作精选"}]},{"label":"五代词","children":[{"title":"花间集","path":"data/五代诗词/huajianji/huajianji-0-preface.json","size":"3KB","icon":"📕","desc":"晚唐五代词"},{"title":"南唐二主词","path":"data/五代诗词/nantang/poetrys.json","size":"69KB","icon":"📕","desc":"李璟李煜词作"}]}]},{"label":"元曲","children":[{"label":"全元曲","children":[{"title":"全元曲","path":"data/元曲/yuanqu.json","size":"4090KB","icon":"🎭","desc":"元代散曲杂剧"}]}]},{"label":"清代文学","children":[{"label":"纳兰性德","children":[{"title":"纳兰性德诗集","path":"data/纳兰性德/纳兰性德诗集.json","size":"156KB","icon":"❄️","desc":"纳兰性德 · 清代词人"}]},{"label":"幽梦影","children":[{"title":"幽梦影","path":"data/幽梦影/youmengying.json","size":"45KB","icon":"🌙","desc":"张潮 · 清代格言"}]}]},{"label":"蒙学读物","children":[{"label":"三字经","children":[{"title":"三字经","path":"data/蒙学/sanzijing-new.json","size":"12KB","icon":"📒","desc":"传统启蒙读物"}]},{"label":"百家姓","children":[{"title":"百家姓","path":"data/蒙学/baijiaxing.json","size":"8KB","icon":"📒","desc":"传统启蒙读物"}]}]},{"label":"御定全唐诗","children":[{"label":"卷一","children":[{"title":"御定全唐诗·卷一","path":"data/御定全唐詩/json/001.json","size":"2.3MB","icon":"👑","desc":"康熙御定全唐诗"}]},{"label":"卷二","children":[{"title":"御定全唐诗·卷二","path":"data/御定全唐詩/json/002.json","size":"2.4MB","icon":"👑","desc":"康熙御定全唐诗"}]}]}]};
+  </script>
+
+  <!-- ====== 应用逻辑 ====== -->
+  <script>
+// ===== 基础路径解析（本地 file:// 和 GitHub Pages 都兼容）=====
+const BASE_PATH = (() => {
+  const href = window.location.href;
+  if (href.startsWith('file://')) return '';
+  // 如果是 GitHub Pages，去掉域名和仓库名前缀，保留目录
+  const match = href.match(/\/([^/]+\/[^/]+?)\//);
+  return match ? match[0] : '';
+})();
+
+function resolvePath(p) {
+  if (!p) return '';
+  if (p.startsWith('http://') || p.startsWith('https://')) return p;
+  return BASE_PATH + p;
+}
+
+// ===== 全局状态 =====
+const State = {
+  treeData: null,
+  config: {},
+  currentItems: [],
+  currentIndex: 0,
+  currentFile: null,
+  currentPath: [],
+  favorites: JSON.parse(localStorage.getItem('poetry_favorites') || '[]'),
+  fontSize: parseInt(localStorage.getItem('poetry_fontSize') || '16'),
+  theme: localStorage.getItem('poetry_theme') || 'light',
+};
+
+// ===== DOM 引用 =====
+const $ = (sel) => document.querySelector(sel);
+const $$ = (sel) => document.querySelectorAll(sel);
+
+// ===== 初始化 =====
+document.addEventListener('DOMContentLoaded', async () => {
+  loadConfig();
+  initTheme();
+  initResizer();
+  initSearch();
+  initFilters();
+  initSidebarTools();
+  initContentActions();
+  initQuickLinks();
+  initFullscreen();
+  initFontSize();
+  initWelcomePage();
+  // 树形数据已内嵌于 TREE_DATA，直接加载
+  loadTreeData();
+});
+
+async function loadTreeData() {
+  const container = $('#treeContainer');
+  const startTime = performance.now();
+  try {
+    // 直接使用内嵌的 TREE_DATA，不再依赖外部 tree.json
+    State.treeData = TREE_DATA;
+    renderTreeBatch(State.treeData.children || [State.treeData], container, true);
+    const elapsed = (performance.now() - startTime).toFixed(1);
+    console.log(`[PERF] Tree rendered in ${elapsed}ms (${container.querySelectorAll('.tree-node').length} nodes)`);
+  } catch (e) {
+    container.innerHTML = `<div class="loading">树形数据加载失败：${e.message}</div>`;
+    console.error('Tree load error:', e);
+  }
+}
+
+// ===== 加载配置文件 =====
+function loadConfig() {
+  State.config = {
+    filters: { dynasty: [], type: [] },
+    quickNav: [],
+    stats: []
+  };
+}
+
+// ===== 1. 渲染树形结构（优化：DocumentFragment 批量渲染）=====
+
+
+function getNodeIcon(node, hasChildren) {
+  if (node.icon) return node.icon;
+  if (node.type === 'root') return '📚';
+  if (hasChildren) return '📁';
+  return '📄';
+}
+
+function toggleTree(row, toggle, childrenDiv) {
+  const isOpen = childrenDiv.classList.contains('open');
+  childrenDiv.classList.toggle('open');
+  toggle.classList.toggle('open', !isOpen);
+}
+
+function selectTreeItem(row, node) {
+  const displayName = node.label || node.title || node.name || '未命名';
+  
+  // 高亮
+  $$('.tree-item').forEach(i => i.classList.remove('active'));
+  row.classList.add('active');
+
+  // 更新面包屑
+  updateBreadcrumb(node);
+
+  // 加载文件内容
+  if (node.path) {
+    loadFileContent(node.path, displayName);
+  }
+}
+
+function updateBreadcrumb(node) {
+  const bc = $('#breadcrumb');
+  const displayName = node.label || node.title || node.name || '未命名';
+  bc.textContent = `当前位置：${displayName}`;
+}
+
+// ===== 1c. 树形过滤（参考 ChinaTextbook-Pages filterCatalog）=====
+function filterTree(nodes, query) {
+  if (!query) return nodes;
+  const q = query.toLowerCase().trim();
+  if (!q) return nodes;
+  
+  const result = [];
+  nodes.forEach(node => {
+    const matchNode = !node.label && !node.title ? false :
+      (node.label || node.title || node.name || '').toLowerCase().includes(q);
+    
+    if (node.children && node.children.length > 0) {
+      const filteredChildren = filterTree(node.children, q);
+      if (filteredChildren.length > 0 || matchNode) {
+        result.push({
+          ...node,
+          children: filteredChildren.length > 0 ? filteredChildren : node.children
+        });
+      }
+    } else if (matchNode || (node.path && (node.label || node.title || '').toLowerCase().includes(q))) {
+      result.push(node);
+    }
+  });
+  return result;
+}
+
+// ===== 2. 加载诗文文件 =====
+async function loadFileContent(path, title) {
+  showWelcome(false);
+  $('#contentPage').style.display = 'flex';
+
+  const resolved = resolvePath(path);
+  console.log('Loading:', path, '->', resolved);
+
+  try {
+    const resp = await fetch(resolved);
+    if (!resp.ok) throw new Error(`HTTP ${resp.status}: ${resp.statusText}`);
+    const data = await resp.json();
+
+    // 兼容多种数据格式
+    const items = normalizeData(data, path);
+    State.currentItems = items;
+    State.currentIndex = 0;
+    State.currentFile = path;
+
+    if (items.length > 0) {
+      displayItem(0);
+    } else {
+      $('#poemView').innerHTML = '<div class="search-empty">暂无内容（请检查数据格式）</div>';
+    }
+  } catch (e) {
+    $('#poemView').innerHTML = `<div class="search-empty">加载失败：${e.message}<br><small>${path}</small></div>`;
+    console.error('Load error:', e);
+  }
+}
+
+/**
+ * 统一处理不同格式的诗文数据
+ */
+function normalizeData(data, path) {
+  const getContent = (item) => {
+    return Array.isArray(item.paragraphs) ? item.paragraphs.join('\n') :
+           Array.isArray(item.content)    ? item.content.join('\n') :
+           Array.isArray(item.para)       ? item.para.join('\n') :
+           Array.isArray(item['正文'])    ? item['正文'].join('\n') :
+           item.content || item.paragraphs || item.para ||
+           item['正文'] || '';
+  };
+
+  // 情况1: 文件本身是单个对象
+  if (!Array.isArray(data) && typeof data === 'object') {
+    if ((data.title || data.chapter || data.標题) && (data.paragraphs || data.content)) {
+      return [{
+        title: data.title || data.chapter || data.標题 || '',
+        author: data.author || '',
+        content: getContent(data),
+        chapter: data.chapter || data.section || '',
+        tags: data.tags || []
+      }];
+    }
+    for (const key of Object.keys(data)) {
+      const val = data[key];
+      if (Array.isArray(val) && val.length > 0 && typeof val[0] === 'object') {
+        return normalizeArray(val, getContent);
+      }
+    }
+  }
+
+  // 情况2: 数组格式
+  if (Array.isArray(data)) {
+    return normalizeArray(data, getContent);
+  }
+
+  return [];
+}
+
+function normalizeArray(arr, getContent) {
+  if (arr.length === 0) return [];
+  const first = arr[0];
+
+  // 诗经格式 {title, chapter, section, content}
+  if (first.title && first.content && !first.paragraphs) {
+    return arr.map(item => ({
+      title: item.title || '',
+      author: item.author || '',
+      content: Array.isArray(item.content) ? item.content.join('\n') : item.content || '',
+      chapter: (item.chapter || item.section) ? `${item.chapter || ''}${item.section ? ' / ' + item.section : ''}` : '',
+      tags: []
+    }));
+  }
+
+  // 通用格式
+  return arr.map(item => ({
+    title: item.rhythmic || item.title || item.曲牌 || item.词牌 || '',
+    author: item.author || '',
+    content: getContent(item),
+    chapter: item.chapter || item.section || '',
+    tags: item.tags || []
+  }));
+}
+
+// ===== 3. 显示诗文 =====
+function displayItem(index) {
+  const item = State.currentItems[index];
+  if (!item) return;
+
+  State.currentIndex = index;
+  updateCounter();
+
+  const isFav = State.favorites.includes(getItemId(item, index));
+  const html = `
+    <div class="poem-card">
+      <h2 class="poem-title">${escapeHtml(item.title)}</h2>
+      <div class="poem-meta">
+        ${item.author ? `<span class="poem-author">${escapeHtml(item.author)}</span>` : ''}
+        ${item.chapter ? `<span class="poem-tag">${escapeHtml(item.chapter)}</span>` : ''}
+        ${item.tags?.map(t => `<span class="poem-tag">${escapeHtml(t)}</span>`).join('') || ''}
+      </div>
+      <div class="poem-content">
+        ${item.content.split('\n').map(line =>
+          `<span class="poem-para">${escapeHtml(line)}</span>`
+        ).join('')}
+      </div>
+    </div>
+  `;
+  $('#poemView').innerHTML = html;
+
+  // 更新收藏按钮状态
+  $('#favoriteBtn').classList.toggle('active', isFav);
+
+  // 滚动到顶部
+  $('#contentScroll').scrollTop = 0;
+}
+
+function getItemId(item, index) {
+  return `${State.currentFile}::${index}::${item.title}`;
+}
+
+function updateCounter() {
+  const total = State.currentItems.length;
+  const cur = total > 0 ? State.currentIndex + 1 : 0;
+  $('#itemCounter').textContent = `第 ${cur} / ${total} 篇`;
+}
+
+// ===== 4. 内容页操作 =====
+function initContentActions() {
+  $('#prevBtn').addEventListener('click', () => {
+    if (State.currentIndex > 0) displayItem(State.currentIndex - 1);
+  });
+  $('#nextBtn').addEventListener('click', () => {
+    if (State.currentIndex < State.currentItems.length - 1) displayItem(State.currentIndex + 1);
+  });
+  $('#copyBtn').addEventListener('click', () => {
+    const item = State.currentItems[State.currentIndex];
+    if (!item) return;
+    const text = `${item.title}${item.author ? '\n' + item.author : ''}\n\n${item.content}`;
+    navigator.clipboard.writeText(text).then(() => toast('已复制到剪贴板'));
+  });
+  $('#favoriteBtn').addEventListener('click', () => {
+    const id = getItemId(State.currentItems[State.currentIndex], State.currentIndex);
+    const idx = State.favorites.indexOf(id);
+    if (idx >= 0) {
+      State.favorites.splice(idx, 1);
+      toast('已取消收藏');
+    } else {
+      State.favorites.push(id);
+      toast('已添加收藏');
+    }
+    localStorage.setItem('poetry_favorites', JSON.stringify(State.favorites));
+    $('#favoriteBtn').classList.toggle('active', idx < 0);
+  });
+}
+
+function initFontSize() {
+  document.documentElement.style.setProperty('--font-size', `${State.fontSize}px`);
+  $('#fontSmBtn').addEventListener('click', () => {
+    State.fontSize = Math.max(12, State.fontSize - 2);
+    document.documentElement.style.setProperty('--font-size', `${State.fontSize}px`);
+    localStorage.setItem('poetry_fontSize', State.fontSize);
+  });
+  $('#fontLgBtn').addEventListener('click', () => {
+    State.fontSize = Math.min(28, State.fontSize + 2);
+    document.documentElement.style.setProperty('--font-size', `${State.fontSize}px`);
+    localStorage.setItem('poetry_fontSize', State.fontSize);
+  });
+}
+
+// ===== 5. 搜索功能 =====
+function initSearch() {
+  const input = $('#searchInput');
+  let timer;
+
+  input.addEventListener('input', () => {
+    clearTimeout(timer);
+    const q = input.value.trim();
+    if (q.length < 1) {
+      // 清空搜索时恢复完整树
+      if (State.treeData) {
+        renderTreeBatch(State.treeData.children || [], $('#treeContainer'), true);
+      }
+      return;
+    }
+    // 防抖搜索（200ms，参考 ChinaTextbook-Pages）
+    timer = setTimeout(() => {
+      performSearch(q);
+      // 同时过滤树形结构
+      filterAndRenderTree(q);
+    }, 200);
+  });
+
+  input.addEventListener('keydown', (e) => {
+    if (e.key === 'Enter') {
+      clearTimeout(timer);
+      performSearch(input.value.trim());
+      filterAndRenderTree(input.value.trim());
+    }
+  });
+
+  $('#searchBtn').addEventListener('click', () => {
+    performSearch(input.value.trim());
+    filterAndRenderTree(input.value.trim());
+  });
+  $('#closeSearchBtn').addEventListener('click', () => toggleSearchPanel(false));
+}
+
+// ===== 1d. 树形过滤渲染（参考 ChinaTextbook-Pages）=====
+function filterAndRenderTree(query) {
+  if (!State.treeData || !query) return;
+  const filtered = filterTree(State.treeData.children || [], query);
+  renderTreeBatch(filtered, $('#treeContainer'), true);
+}
+
+async function performSearch(query) {
+  if (!query) return;
+  const panel = $('#searchPanel');
+  const results = $('#searchResults');
+  panel.style.display = 'flex';
+  results.innerHTML = '<div class="search-loading">🔍 搜索中…</div>';
+
+  const dynasty = $('#dynastyFilter').value;
+  const type = $('#typeFilter').value;
+
+  // 从tree数据中获取所有可搜索的路径
+  const paths = collectPaths(State.treeData.children || []);
+  const results_all = [];
+
+  for (const path of paths) {
+    try {
+      const resolved = resolvePath(path);
+      const resp = await fetch(resolved);
+      const data = await resp.json();
+      const items = normalizeData(data, path);
+      for (let i = 0; i < items.length; i++) {
+        const item = items[i];
+        const q = query.toLowerCase();
+        if (
+          item.title.toLowerCase().includes(q) ||
+          item.author.toLowerCase().includes(q) ||
+          item.content.toLowerCase().includes(q)
+        ) {
+          if (dynasty && !path.includes(dynasty) && !item.author.includes(dynasty)) continue;
+          if (type && !item.content.includes(type) && !item.title.includes(type)) continue;
+          results_all.push({ ...item, path, index: i });
+        }
+      }
+    } catch {}
+  }
+
+  renderSearchResults(results_all, query);
+}
+
+function collectPaths(node, results = []) {
+  if (node.path) results.push(node.path);
+  if (node.children) node.children.forEach(c => collectPaths(c, results));
+  return results;
+}
+
+function renderSearchResults(items, query) {
+  const results = $('#searchResults');
+  if (items.length === 0) {
+    results.innerHTML = `<div class="search-empty">未找到"${escapeHtml(query)}"相关结果</div>`;
+    return;
+  }
+
+  results.innerHTML = items.slice(0, 50).map(item => {
+    const snippet = getSnippet(item.content, query);
+    return `
+      <div class="search-result-item" data-path="${item.path}" data-index="${item.index}">
+        <div class="search-result-title">${highlight(escapeHtml(item.title), query)}</div>
+        <div class="search-result-meta">${escapeHtml(item.author)}</div>
+        <div class="search-result-snippet">${highlight(snippet, query)}</div>
+      </div>
+    `;
+  }).join('');
+
+  // 点击跳转到诗文
+  results.querySelectorAll('.search-result-item').forEach(el => {
+    el.addEventListener('click', async () => {
+      const path = el.dataset.path;
+      const index = parseInt(el.dataset.index);
+      await loadFileContent(path, '');
+      const idx = State.currentItems.findIndex((item, i) =>
+        i === index || item.title === State.currentItems[index]?.title
+      );
+      if (idx >= 0) displayItem(idx);
+      toggleSearchPanel(false);
+    });
+  });
+}
+
+function getSnippet(content, query, len = 60) {
+  const idx = content.toLowerCase().indexOf(query.toLowerCase());
+  if (idx < 0) return content.substring(0, len) + '…';
+  const start = Math.max(0, idx - 20);
+  const end = Math.min(content.length, idx + query.length + 40);
+  return (start > 0 ? '…' : '') + content.substring(start, end) + (end < content.length ? '…' : '');
+}
+
+function highlight(text, query) {
+  if (!query) return text;
+  const regex = new RegExp(`(${escapeRegex(query)})`, 'gi');
+  return text.replace(regex, '<span class="search-highlight">$1</span>');
+}
+
+function toggleSearchPanel(show) {
+  const panel = $('#searchPanel');
+  panel.style.display = show ? 'flex' : 'none';
+}
+
+// ===== 6. 过滤器 =====
+function initFilters() {
+  const dynastyFilter = $('#dynastyFilter');
+  dynastyFilter.innerHTML = `<option value="">全部朝代</option>
+    <option value="诗经">诗经</option>
+    <option value="楚辞">楚辞</option>
+    <option value="论语">论语</option>
+    <option value="唐">唐</option>
+    <option value="宋">宋</option>
+    <option value="五代">五代</option>
+    <option value="元">元</option>
+    <option value="清">清</option>
+  `;
+
+  const typeFilter = $('#typeFilter');
+  typeFilter.innerHTML = `<option value="">全部体裁</option>
+    <option value="诗">诗</option>
+    <option value="词">词</option>
+    <option value="曲">曲</option>
+    <option value="散文">散文</option>
+  `;
+
+  dynastyFilter.addEventListener('change', () => {
+    const q = $('#searchInput').value.trim();
+    if (q) performSearch(q);
+  });
+  typeFilter.addEventListener('change', () => {
+    const q = $('#searchInput').value.trim();
+    if (q) performSearch(q);
+  });
+}
+
+// ===== 7. 侧边栏工具 =====
+// 展开/折叠按钮已在 initQuickLinks 中处理
+function initSidebarTools() {
+  // 预留扩展
+}
+
+// ===== 8. 快速导航 =====
+function initQuickLinks() {
+  $$('.quick-link').forEach(btn => {
+    btn.addEventListener('click', () => {
+      const path = btn.dataset.path;
+      loadFileContent(path, btn.textContent.trim());
+    });
+  });
+  // 侧边栏展开/折叠按钮（修复：确保在树渲染后再绑定）
+  function initExpandCollapse() {
+    const expandBtn = $('#expandAllBtn');
+    const collapseBtn = $('#collapseAllBtn');
+    if (expandBtn) {
+      expandBtn.addEventListener('click', () => {
+        $$('.tree-children').forEach(el => el.classList.add('open'));
+        $$('.tree-toggle:not(.empty)').forEach(el => el.classList.add('open'));
+      });
+    }
+    if (collapseBtn) {
+      collapseBtn.addEventListener('click', () => {
+        $$('.tree-children').forEach(el => el.classList.remove('open'));
+        $$('.tree-toggle').forEach(el => el.classList.remove('open'));
+      });
+    }
+  }
+  // 延迟一点确保树已渲染
+  setTimeout(initExpandCollapse, 500);
+}
+
+// ===== 9. 初始化欢迎页面 =====
+function initWelcomePage() {
+  // Stats already hardcoded in HTML
+}
+
+// ===== 10. 全屏 =====
+function initFullscreen() {
+  $('#fullscreenBtn').addEventListener('click', () => {
+    if (!document.fullscreenElement) {
+      document.documentElement.requestFullscreen();
+    } else {
+      document.exitFullscreen();
+    }
+  });
+}
+
+// ===== 11. 主题切换 =====
+function initTheme() {
+  document.documentElement.dataset.theme = State.theme;
+  updateThemeBtn();
+  $('#themeBtn').addEventListener('click', () => {
+    State.theme = State.theme === 'light' ? 'dark' : 'light';
+    document.documentElement.dataset.theme = State.theme;
+    localStorage.setItem('poetry_theme', State.theme);
+    updateThemeBtn();
+  });
+}
+function updateThemeBtn() {
+  $('#themeBtn').textContent = State.theme === 'light' ? '🌙' : '☀️';
+}
+
+// ===== 12. 随机一首 =====
+$('#randomBtn')?.addEventListener('click', async () => {
+  if (!State.treeData?.children || State.treeData.children.length === 0) {
+    toast('📚 请先加载诗词目录');
+    return;
+  }
+  const paths = collectPaths(State.treeData.children);
+  if (paths.length === 0) return;
+  const path = paths[Math.floor(Math.random() * paths.length)];
+  await loadFileContent(path, '');
+  const idx = Math.floor(Math.random() * State.currentItems.length);
+  displayItem(idx);
+  toast('🎲 随机推荐');
+});
+
+// ===== 13. 拖动分割条 =====
+function initResizer() {
+  const resizer = $('#resizer');
+  const sidebar = $('.sidebar');
+  let isResizing = false;
+  let startX, startWidth;
+
+  resizer.addEventListener('mousedown', (e) => {
+    isResizing = true;
+    startX = e.clientX;
+    startWidth = sidebar.offsetWidth;
+    resizer.classList.add('dragging');
+    document.body.style.cursor = 'col-resize';
+    document.body.style.userSelect = 'none';
+  });
+
+  document.addEventListener('mousemove', (e) => {
+    if (!isResizing) return;
+    const diff = e.clientX - startX;
+    const newWidth = Math.max(180, Math.min(500, startWidth + diff));
+    sidebar.style.width = newWidth + 'px';
+  });
+
+  document.addEventListener('mouseup', () => {
+    if (isResizing) {
+      isResizing = false;
+      resizer.classList.remove('dragging');
+      document.body.style.cursor = '';
+      document.body.style.userSelect = '';
+    }
+  });
+}
+
+// ===== 14. 显示欢迎页 =====
+function showWelcome(show) {
+  const welcome = $('#welcomePage');
+  if (show) {
+    welcome.style.display = 'flex';
+  } else {
+    welcome.style.display = 'none';
+  }
+}
+
+// ===== 工具函数 =====
+function escapeHtml(str) {
+  if (!str) return '';
+  return str.replace(/&/g, '&amp;')
+             .replace(/</g, '&lt;')
+             .replace(/>/g, '&gt;')
+             .replace(/"/g, '&quot;');
+}
+
+function escapeRegex(str) {
+  return str.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+}
+
+function toast(msg) {
+  const t = $('#toast');
+  t.textContent = msg;
+  t.classList.add('show');
+  clearTimeout(t._timer);
+  t._timer = setTimeout(() => t.classList.remove('show'), 2200);
+}
+  </script>
+</body>
+</html>
