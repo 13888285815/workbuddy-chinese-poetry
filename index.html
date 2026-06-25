@@ -798,17 +798,30 @@ html, body {
   <script>
 // ===== 基础路径解析（本地 file:// 和 GitHub Pages 都兼容）=====
 const BASE_PATH = (() => {
-  const href = window.location.href;
-  if (href.startsWith('file://')) return '';
-  // 如果是 GitHub Pages，去掉域名和仓库名前缀，保留目录
-  const match = href.match(/\/([^/]+\/[^/]+?)\//);
-  return match ? match[0] : '';
+  // 优先使用 pathname 而非 href，避免正则把域名（如 13888285815.github.io）误识别为路径前缀
+  const pathname = window.location.pathname;
+  // GitHub Pages 上 pathname 形如 /<repo>/...，取首段作为 BASE_PATH（含首尾 /）
+  if (pathname && pathname !== '/' && !window.location.protocol.startsWith('file')) {
+    const m = pathname.match(/^\/[^\/]+\/?/);
+    if (m) return m[0];
+  }
+  return '';
 })();
 
 function resolvePath(p) {
   if (!p) return '';
   if (p.startsWith('http://') || p.startsWith('https://')) return p;
-  return BASE_PATH + p;
+  // 使用 new URL 进行解析，确保以 BASE_PATH 开头的路径被正确拼接，
+  // 避免 BASE_PATH + p 形成 "/x/y" 这种被浏览器误解析为 origin-absolute 的 URL
+  try {
+    if (BASE_PATH) {
+      // BASE_PATH 形如 /workbuddy-chinese-poetry/，使用相对路径拼接最稳
+      return new URL(p, window.location.origin + BASE_PATH).href;
+    }
+    return new URL(p, window.location.href).href;
+  } catch (_) {
+    return BASE_PATH + p;
+  }
 }
 
 // ===== 全局状态 =====
